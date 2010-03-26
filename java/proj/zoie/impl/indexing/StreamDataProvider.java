@@ -29,57 +29,57 @@ import proj.zoie.mbean.DataProviderAdminMBean;
 
 public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProviderAdminMBean{
 	private static final Logger log = Logger.getLogger(StreamDataProvider.class);
-	
+
 	private int _batchSize;
 	private DataConsumer<V> _consumer;
 	private DataThread<V> _thread;
-	
+
 	public StreamDataProvider()
 	{
 		_batchSize=1;
 		_consumer=null;
 	}
-	
+
 	public void setDataConsumer(DataConsumer<V> consumer)
 	{
-	  _consumer=consumer;	
+		_consumer=consumer;	
 	}
-	
+
 	public DataConsumer<V> getDataConsumer()
 	{
-	  return _consumer;
+		return _consumer;
 	}
 
 	public abstract DataEvent<V> next();
-	
+
 	public abstract void reset();
-	
+
 	public int getBatchSize() {
 		return _batchSize;
 	}
-	
+
 	public long getEventsPerMinute() {
-	  DataThread<V> thread = _thread;
-	  if (thread==null) return 0;
-	  return thread.getEventsPerMinute();
+		DataThread<V> thread = _thread;
+		if (thread==null) return 0;
+		return thread.getEventsPerMinute();
 	}
-	
+
 	public long getMaxEventsPerMinute() {
-      DataThread<V> thread = _thread;
-      if (thread==null) return 0;
-      return thread.getMaxEventsPerMinute();
+		DataThread<V> thread = _thread;
+		if (thread==null) return 0;
+		return thread.getMaxEventsPerMinute();
 	}
 
 	public void setMaxEventsPerMinute(long maxEventsPerMinute) {
-      DataThread<V> thread = _thread;
-      if (thread==null) return;
-      thread.setMaxEventsPerMinute(maxEventsPerMinute);
+		DataThread<V> thread = _thread;
+		if (thread==null) return;
+		thread.setMaxEventsPerMinute(maxEventsPerMinute);
 	}
-	
+
 	public String getStatus() {
-      DataThread<V> thread = _thread;
-      if (thread==null) return "dead";
-      return thread.getStatus() + " : " + thread.getState();
+		DataThread<V> thread = _thread;
+		if (thread==null) return "dead";
+		return thread.getStatus() + " : " + thread.getState();
 	}
 
 	public void pause() {
@@ -99,23 +99,28 @@ public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProvi
 	public void setBatchSize(int batchSize) {
 		_batchSize=Math.max(1, batchSize);
 	}
-	
+
 	public long getEventCount()
 	{
-	  DataThread<V> thread = _thread;
-	  if (thread != null)
-	    return _thread.getEventCount();
-	  else
-	    return 0;
+		DataThread<V> thread = _thread;
+		if (thread != null)
+			return _thread.getEventCount();
+		else
+			return 0;
 	}
-	
+
 	public void stop()
 	{
+		System.out.println("Trying to stop the file data provider...");
 		if (_thread!=null && _thread.isAlive())
 		{
+			System.out.println("Trying to terminate data provider thread ...");
 			_thread.terminate();
+			System.out.println("Terminated data provider thread ...");
 			try {
+				System.out.println("Waiting for data provider thread to finish ...");
 				_thread.join();
+				System.out.println("Finished waiting for data provider thread ..");
 			} catch (InterruptedException e) {
 				log.warn("stopping interrupted");
 			}
@@ -130,15 +135,15 @@ public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProvi
 			_thread.start();
 		}
 	}
-	
+
 	public void syncWthVersion(long timeInMillis, long version) throws ZoieException
 	{
-	  _thread.syncWthVersion(timeInMillis, version);
+		_thread.syncWthVersion(timeInMillis, version);
 	}
-	
+
 	private static final class DataThread<V> extends Thread
 	{
-	    private Collection<DataEvent<V>> _batch;
+		private Collection<DataEvent<V>> _batch;
 		private long _currentVersion;
 		private final StreamDataProvider<V> _dataProvider;
 		private boolean _paused;
@@ -146,24 +151,24 @@ public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProvi
 		private AtomicLong _eventCount = new AtomicLong(0);
 		private volatile long _eventStart = System.nanoTime();
 		private volatile long _throttle = 40000;//Long.MAX_VALUE;
-		
+
 		private void resetEventTimer()
 		{
-		  _eventCount.set(0);
-		  _eventStart = System.nanoTime();
+			_eventCount.set(0);
+			_eventStart = System.nanoTime();
 		}
-		
+
 		private String getStatus()
 		{
-		  synchronized(this)
-		  {
-		    if (_stop) return "stopped";
-		    if (_paused) return "paused";
-		    return "running";
-		  }
+			synchronized(this)
+			{
+				if (_stop) return "stopped";
+				if (_paused) return "paused";
+				return "running";
+			}
 		}
-		
-    DataThread(StreamDataProvider<V> dataProvider)
+
+		DataThread(StreamDataProvider<V> dataProvider)
 		{
 			super("Stream DataThread");
 			setDaemon(false);
@@ -176,154 +181,157 @@ public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProvi
 		@Override
 		public void start()
 		{
-		  super.start();
-		  resetEventTimer();
+			super.start();
+			resetEventTimer();
 		}
-		
+
 		void terminate()
 		{
 			synchronized(this)
 			{
-	            _stop = true;
-			   this.notifyAll();
+				_stop = true;
+				System.out.println("Trying to notify other threads of change to stop value");
+				this.notifyAll();
+				System.out.println("Notified other threads of change to stop value");
 			}
 		}
-		
+
 		void pauseDataFeed()
 		{
-		    synchronized(this)
-		    {
-		        _paused = true;
-		    }
+			synchronized(this)
+			{
+				_paused = true;
+			}
 		}
-		
+
 		void resumeDataFeed()
 		{
 			synchronized(this)
 			{
-	            _paused = false;
-	            resetEventTimer();
+				_paused = false;
+				resetEventTimer();
 				this.notifyAll();
 			}
 		}
-		
-		private void flush()
-	    {
-	    	// FLUSH
-		    Collection<DataEvent<V>> tmp;
-		    tmp = _batch;
-            _batch = new LinkedList<DataEvent<V>>();
 
-		    try
-	        {
-		      if(_dataProvider._consumer!=null)
-		      {
-		        _eventCount.getAndAdd(tmp.size());
-		    	  _dataProvider._consumer.consume(tmp);
-		      }
-	        }
-	        catch (ZoieException e)
-	        {
-	          log.error(e.getMessage(), e);
-	        }
-	    }
-		
+		private void flush()
+		{
+			// FLUSH
+			Collection<DataEvent<V>> tmp;
+			tmp = _batch;
+			_batch = new LinkedList<DataEvent<V>>();
+
+			try
+			{
+				if(_dataProvider._consumer!=null)
+				{
+					_eventCount.getAndAdd(tmp.size());
+					_dataProvider._consumer.consume(tmp);
+				}
+			}
+			catch (ZoieException e)
+			{
+				log.error(e.getMessage(), e);
+			}
+		}
+
 		public long getCurrentVersion()
 		{
 			synchronized(this)
 			{
-		      return _currentVersion;
+				return _currentVersion;
 			}
 		}
-		
+
 		public void syncWthVersion(long timeInMillis, long version) throws ZoieException
 		{
-		  long now = System.currentTimeMillis();
-		  long due = now + timeInMillis;
-		  synchronized(this)
-		  {
-		    while(_currentVersion < version)
-		    {
-		      if(now > due)
-              {
-                throw new ZoieException("sync timed out");
-              }
-		      try
-		      {
-		        this.wait(due - now);
-		      }
-		      catch(InterruptedException e)
-		      {
-	              log.warn(e.getMessage(), e);
-		      }
-		      now = System.currentTimeMillis();
-		    }
-		  }
+			long now = System.currentTimeMillis();
+			long due = now + timeInMillis;
+			synchronized(this)
+			{
+				while(_currentVersion < version)
+				{
+					if(now > due)
+					{
+						throw new ZoieException("sync timed out");
+					}
+					try
+					{
+						this.wait(due - now);
+					}
+					catch(InterruptedException e)
+					{
+						log.warn(e.getMessage(), e);
+					}
+					now = System.currentTimeMillis();
+				}
+			}
 		}
 
 		public void run()
 		{
-		  while (!_stop)
-		  {
-		    synchronized(this)
-		    {
-		      while(!_stop && (_paused || (getEventsPerMinute() > _throttle)))
-		      {
-		        try {
-		          this.wait(500);
-		        } catch (InterruptedException e) {
-		          continue;
-		        }
-		      }
-		    }
-		    if (!_stop)
-		    {
-		      DataEvent<V> data = _dataProvider.next();
-		      if (data!=null)
-		      {
-		        synchronized(this)
-		        {
-		          _batch.add(data);
-		          if (_batch.size()>=_dataProvider._batchSize)
-		          {
-		            flush();
-		          }
-		          _currentVersion=Math.max(_currentVersion, data.getVersion());
-		          this.notifyAll();
-		        }
-		      }
-		      else
-		      {
-		        synchronized(this)
-		        {
-		          flush();
-		          _stop=true;
-		          return;
-		        }
-		      }
-		    }
-		  }
+			while (!_stop)
+			{
+				synchronized(this)
+				{
+					while(!_stop && (_paused || (getEventsPerMinute() > _throttle)))
+					{
+						try {
+							this.wait(500);
+						} catch (InterruptedException e) {
+							continue;
+						}
+					}
+				}
+				if (!_stop)
+				{
+					DataEvent<V> data = _dataProvider.next();
+					if (data!=null)
+					{
+						synchronized(this)
+						{
+							_batch.add(data);
+							if (_batch.size()>=_dataProvider._batchSize)
+							{
+								flush();
+							}
+							_currentVersion=Math.max(_currentVersion, data.getVersion());
+							this.notifyAll();
+						}
+					}
+					else
+					{
+						synchronized(this)
+						{
+							flush();
+							_stop=true;
+							return;
+						}
+					}
+				}
+			}
 		}
 
 		private long getEventCount()
 		{
-		  return _eventCount.get();
+			return _eventCount.get();
 		}
 
 		private long getEventsPerMinute(){
-		  long diff = (System.nanoTime() - _eventStart)/1000000;
-		  if ( diff<=0 ) return 0;
-		  return _eventCount.get()*60000/diff;
+			long diff = (System.nanoTime() - _eventStart)/1000000;
+			if ( diff<=0 ) return 0;
+			return _eventCount.get()*60000/diff;
 		}
-		
+
 		private long getMaxEventsPerMinute()
 		{
-		  return _throttle;
+			return _throttle;
 		}
-		
-        private void setMaxEventsPerMinute(long maxEventsPerMinute)
-        {
-          _throttle = maxEventsPerMinute;
-        }
+
+		private void setMaxEventsPerMinute(long maxEventsPerMinute)
+		{
+			_throttle = maxEventsPerMinute;
+			System.out.println("StreamDataProvider: setMaxEventsPerMinute() --> Changing _throttle value to " + _throttle);
+		}
 	}
 }

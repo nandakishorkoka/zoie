@@ -36,6 +36,7 @@ public class FileIndexableInterpreter implements ZoieIndexableInterpreter<File>
 	private static final Logger log = Logger.getLogger(FileIndexableInterpreter.class);
 	static ThreadLocal<StringBuilder> myStringBuilder = new ThreadLocal<StringBuilder>();
 	static ThreadLocal<char[]> myCharBuffer = new ThreadLocal<char[]>();
+	
 	protected class FileIndexable extends AbstractZoieIndexable
 	{
 		private File _file;

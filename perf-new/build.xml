@@ -1,0 +1,41 @@
+<project name="zoie-perf-server" default="dist">
+	<property name="server.src" value="src" />
+	<property file="perf.properties" />
+	<property name="build" value="build" />
+	<property name="perf.conf" value="conf" />
+	<path id="compile.class.path">
+		<fileset dir="${lib.dir}/master">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${dist}">
+			<include name="zoie-*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${build}" />
+	</target>
+
+	<target name="init">
+		<mkdir dir="${build}" />
+	</target>
+
+	<target name="compile" depends="init">
+		<javac destdir="${build}">
+			<src path="${server.src}" />
+			<classpath refid="compile.class.path" />
+		</javac>
+	</target>
+
+	<target name="dist" depends="compile">
+		<copy file="${conf.dir}/log4j.properties" todir="${build}" />
+		<copy file="${perf.conf}/perf.properties" todir="${build}/src/proj/zoie/server" />
+		<jar destfile="${dist}/zoie-perf-server-${version}.jar" basedir="${build}"
+                        includes="**/*.class">
+			<manifest>
+				<attribute name="Main-Class"
+					value="src.proj.zoie.server.MonitoredZoieSystem" />
+			</manifest>
+		</jar>
+	</target>
+</project>

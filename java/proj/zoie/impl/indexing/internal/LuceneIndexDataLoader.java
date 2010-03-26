@@ -51,9 +51,9 @@ public abstract class LuceneIndexDataLoader<R extends IndexReader> implements Da
 	}
 
 	protected abstract BaseSearchIndex<R> getSearchIndex();
-	
-    protected abstract void propagateDeletes(LongSet delDocs) throws IOException;
-    protected abstract void commitPropagatedDeletes() throws IOException;
+
+	protected abstract void propagateDeletes(LongSet delDocs) throws IOException;
+	protected abstract void commitPropagatedDeletes() throws IOException;
 
 	/**
 	 * @Precondition incoming events sorted by version number
@@ -64,7 +64,7 @@ public abstract class LuceneIndexDataLoader<R extends IndexReader> implements Da
 	 */
 	public void consume(Collection<DataEvent<ZoieIndexable>> events) throws ZoieException {
 		int eventCount = events.size();
-        if (events == null || eventCount == 0)
+		if (events == null || eventCount == 0)
 			return;
 
 		BaseSearchIndex<R> idx = getSearchIndex();
@@ -73,31 +73,32 @@ public abstract class LuceneIndexDataLoader<R extends IndexReader> implements Da
 		long version = idx.getVersion();		// current version
 
 		LongSet delSet =new LongOpenHashSet();
-		
+
 		try {
-		  for(DataEvent<ZoieIndexable> evt : events)
-		  {
-		    if (evt == null) continue;
-    		    version = Math.max(version, evt.getVersion());
-    		    // interpret and get get the indexable instance
-    		    ZoieIndexable indexable = evt.getData();
-    		    if (indexable == null || indexable.isSkip())
-    		      continue;
-    
-    		    long uid = indexable.getUID();
-    		    delSet.add(uid);
-    		    addList.remove(uid);
+			for(DataEvent<ZoieIndexable> evt : events)
+			{
+				if (evt == null) continue;
+				version = Math.max(version, evt.getVersion());
+//				System.out.println("LuceneIndexDataLoader: Processing event version=" + evt.getVersion());
+				// interpret and get get the indexable instance
+				ZoieIndexable indexable = evt.getData();
+				if (indexable == null || indexable.isSkip())
+					continue;
+
+				long uid = indexable.getUID();
+				delSet.add(uid);
+				addList.remove(uid);
 				if (!indexable.isDeleted()) // update event
 				{
 					IndexingReq[] reqs = indexable.buildIndexingReqs();
 					for (IndexingReq req : reqs) {
 						if (req != null) // if doc is provided, interpret as
-											// a delete, e.g. update with
-											// nothing
+							// a delete, e.g. update with
+							// nothing
 						{
 							Document doc = req.getDocument();
 							if (doc!=null){
-							  ZoieSegmentReader.fillDocumentID(doc, uid);
+								ZoieSegmentReader.fillDocumentID(doc, uid);
 							}
 							// add to the insert list
 							List<IndexingReq> docList = addList.get(uid);
@@ -117,12 +118,12 @@ public abstract class LuceneIndexDataLoader<R extends IndexReader> implements Da
 			for (List<IndexingReq> tmpList : addList.values()) {
 				docList.addAll(tmpList);
 			}
-            idx.updateIndex(delSet, docList, _analyzer,_similarity);
-            propagateDeletes(delSet);
+			idx.updateIndex(delSet, docList, _analyzer,_similarity);
+			propagateDeletes(delSet);
 			synchronized(_idxMgr)
 			{
-              idx.refresh();
-              commitPropagatedDeletes();
+				idx.refresh();
+				commitPropagatedDeletes();
 			}
 		} catch (IOException ioe) {
 			log.error("Problem indexing batch: " + ioe.getMessage(), ioe);
@@ -131,10 +132,10 @@ public abstract class LuceneIndexDataLoader<R extends IndexReader> implements Da
 				if (idx != null) {
 					idx.incrementEventCount(eventCount);
 					idx.setVersion(version); // update the version of the
-												// index
+					// index
 				}
 			} catch (Exception e) // catch all exceptions, or it would screw
-									// up jobs framework
+			// up jobs framework
 			{
 				log.warn(e.getMessage());
 			} finally {
@@ -144,35 +145,35 @@ public abstract class LuceneIndexDataLoader<R extends IndexReader> implements Da
 			}
 		}
 	}
-	
-    public void loadFromIndex(RAMSearchIndex<R> ramIndex) throws ZoieException
-    {
-      try
-      {
-        BaseSearchIndex<R> idx = getSearchIndex();
-        idx.loadFromIndex(ramIndex);
-        idx.clearDeletes(); // clear old deletes as deletes are written to the lucene index
-        idx.refresh(); // load the index reader
-        idx.markDeletes(ramIndex.getDelDocs()); // inherit deletes
-        idx.commitDeletes();
-        idx.incrementEventCount(ramIndex.getEventsHandled());
-        idx.setVersion(Math.max(idx.getVersion(), ramIndex.getVersion()));
-      }
-      catch(IOException ioe)
-      {
-        log.error("Problem copying segments: " + ioe.getMessage(), ioe);
-        throw new ZoieException(ioe);
-      }
-    }
-    
-  /**
-   * @return the version number of the search index.
-   */
-  public long getVersion()
-  {
-    BaseSearchIndex<R> idx = getSearchIndex();
-    long version = 0;
-    if (idx != null) version = idx.getVersion();
-    return version;
-  }
+
+	public void loadFromIndex(RAMSearchIndex<R> ramIndex) throws ZoieException
+	{
+		try
+		{
+			BaseSearchIndex<R> idx = getSearchIndex();
+			idx.loadFromIndex(ramIndex);
+			idx.clearDeletes(); // clear old deletes as deletes are written to the lucene index
+			idx.refresh(); // load the index reader
+			idx.markDeletes(ramIndex.getDelDocs()); // inherit deletes
+			idx.commitDeletes();
+			idx.incrementEventCount(ramIndex.getEventsHandled());
+			idx.setVersion(Math.max(idx.getVersion(), ramIndex.getVersion()));
+		}
+		catch(IOException ioe)
+		{
+			log.error("Problem copying segments: " + ioe.getMessage(), ioe);
+			throw new ZoieException(ioe);
+		}
+	}
+
+	/**
+	 * @return the version number of the search index.
+	 */
+	public long getVersion()
+	{
+		BaseSearchIndex<R> idx = getSearchIndex();
+		long version = 0;
+		if (idx != null) version = idx.getVersion();
+		return version;
+	}
 }

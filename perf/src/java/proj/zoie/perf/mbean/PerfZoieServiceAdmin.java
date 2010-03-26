@@ -174,5 +174,4 @@ public class PerfZoieServiceAdmin implements PerfZoieServiceMBean
     long speed = delta / duration;
     return speed;
   }
-
 }

@@ -69,7 +69,7 @@ public class ZoiePerfTest
       try
       {
         svcUrl =
-            resource.getString("org.deepak.performance.test.zoieperftest.serviceurl");
+            resource.getString("ls");
       }
       catch (Exception ex)
       {

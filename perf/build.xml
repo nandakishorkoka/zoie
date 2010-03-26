@@ -6,7 +6,8 @@
   <property name="index.perf.dir" location="index-perf" />
   <property name="index.data" location="index.tar.gz"/>
   <property name="perf.src" value="src/java" />
-  
+   <property name="lib.dir" location="../lib"/>
+
   <property name="perf.build" location="perf-build"/>
     
   <path id="compile.class.path">

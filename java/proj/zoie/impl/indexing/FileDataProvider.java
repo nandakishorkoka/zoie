@@ -71,12 +71,16 @@ public class FileDataProvider extends StreamDataProvider<File>
 			File next=_currentIterator.next();
 			if (next.isFile())
 			{
-				return new DataEvent<File>(_currentVersion++,next);
+				DataEvent<File> event = new DataEvent<File>(_currentVersion++,next);
+				return event;
 			}
 			else
 			{
-				_stack.push(_currentIterator);
-				_currentIterator=Arrays.asList(next.listFiles()).iterator();
+//				System.out.println("FileDataProvider:next(): " + next.getAbsolutePath() + " and it is a file " + next.isFile());
+				if(next.list() != null) {
+					_stack.push(_currentIterator);
+					_currentIterator=Arrays.asList(next.listFiles()).iterator();
+				}
 				return next();
 			}
 		}

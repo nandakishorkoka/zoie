@@ -82,16 +82,24 @@ public class ZoieSystemAdmin implements ZoieSystemAdminMBean {
 		return _internalMBean.getRamBVersion();
 	}
 
+	public long getMinUID() {
+		return _internalMBean.getMinUID();
+	}
+	
+	public long getMaxUID() {
+		return _internalMBean.getMaxUID();
+	}
+	
 	public void optimize(int numSegs) throws IOException {
 		_internalMBean.optimize(numSegs);
 	}
 
 	public void setBatchSize(int batchSize) {
-		_internalMBean.setBatchSize(batchSize);
+		_internalMBean.getMinUID();
 	}
 
 	public void setMaxBatchSize(int maxBatchSize) {
-		_internalMBean.setMaxBatchSize(maxBatchSize);
+		_internalMBean.getMaxUID();
 	}
 
 	public String getIndexDir() {

@@ -57,6 +57,13 @@ public class ZoieMultiReader<R extends IndexReader> extends ZoieIndexReader<R>
 		init(subReaders);
 	}
 	
+	/**
+	 * @return the subZoieReaders
+	 */
+	public ArrayList<ZoieSegmentReader<R>> getSubZoieReaders() {
+		return _subZoieReaders;
+	}
+
 	public int[] getStarts(){
 		return _starts;
 	}
