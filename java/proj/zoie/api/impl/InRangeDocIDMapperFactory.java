@@ -2,12 +2,16 @@ package proj.zoie.api.impl;
 
 import java.util.Arrays;
 
+import org.apache.log4j.Logger;
 import proj.zoie.api.DocIDMapper;
 import proj.zoie.api.DocIDMapperFactory;
+import proj.zoie.api.ZoieIndexReader;
 import proj.zoie.api.ZoieMultiReader;
 import proj.zoie.api.ZoieSegmentReader;
+import proj.zoie.impl.indexing.ZoieSystem;
 
 public class InRangeDocIDMapperFactory implements DocIDMapperFactory {
+  private static final Logger log = Logger.getLogger(ZoieSystem.class);
 	private final long _start;
 	private final int _count;
 	
@@ -27,25 +31,44 @@ public class InRangeDocIDMapperFactory implements DocIDMapperFactory {
 		final int[] starts = reader.getStarts();
 		
 		if (docCount > RAM_COUNT_THRESHOLD){				// large disk index
-			final int[] uidArray = new int[_count];
+			final int[] uidArray = new int[_count]; // this is a mapping from local UID (i.e., array index)
+			                                        // to global doc ID.
 			Arrays.fill(uidArray,DocIDMapper.NOT_FOUND);
 			for (int i = 0; i < subreaders.length; ++i){
 				long[] subuidarray = subreaders[i].getUIDArray();
 				final int start = starts[i];
 				final ZoieSegmentReader<?> subreader = subreaders[i];
-				for (int k=0;k<subuidarray.length;++k){
-					long subid = subuidarray[k];
-					uidArray[(int)(subid-_start)] = k+starts[i];
+				for (int k=0;k<subuidarray.length;++k){ // k is the local DOC ID for the subreader
+				  // subid is the global UID
+					long subid = subuidarray[k]; // could be ZoieIndexReader.DELETED_UID
+					if (subid != ZoieIndexReader.DELETED_UID)
+					{
+					  int localid = (int)(subid-_start); // this is local UID
+					  if ((localid<0) || (localid>=uidArray.length))
+					  {
+					    log.error("Local UID outof range for localUID: " + localid);
+					  }
+					  uidArray[localid] = k+starts[i];//so the global DocID is this.
+					}
 				}
 				subreader.setDocIDMapper(new DocIDMapper(){
+				  int maxDoc = subreader.maxDoc();
+				  int max = maxDoc + start;
+				  
 					public int getDocID(long uid) {
+					  int mapped;
 						uid = uid - _start;
-						int mapped = uidArray[(int)uid];
+						if (uid<0 || uid>=uidArray.length)
+						{
+						  return DocIDMapper.NOT_FOUND;
+						} else
+						{
+						  mapped = uidArray[(int)uid];
+						}
 						if (mapped != DocIDMapper.NOT_FOUND){
-							mapped -= start;
-							if (mapped >= subreader.maxDoc()){
-								mapped = DocIDMapper.NOT_FOUND;
-							}
+						  if (mapped >= max)
+						    return DocIDMapper.NOT_FOUND;
+						  return mapped - start;
 						}
 						return mapped;
 					}
@@ -53,6 +76,10 @@ public class InRangeDocIDMapperFactory implements DocIDMapperFactory {
 			}
 			return new DocIDMapper() {
 				public int getDocID(long uid) {
+				  if (((int)uid) < _start)
+				  {
+				    return DocIDMapper.NOT_FOUND;
+				  }
 					int idx = (int)(uid-_start);
 					if (idx<uidArray.length){
 					  return uidArray[idx];

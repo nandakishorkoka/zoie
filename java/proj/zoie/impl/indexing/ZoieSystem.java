@@ -39,6 +39,7 @@ import proj.zoie.api.DocIDMapperFactory;
 import proj.zoie.api.IndexReaderFactory;
 import proj.zoie.api.ZoieException;
 import proj.zoie.api.ZoieIndexReader;
+import proj.zoie.api.impl.DefaultDocIDMapperFactory;
 import proj.zoie.api.indexing.DefaultOptimizeScheduler;
 import proj.zoie.api.indexing.IndexReaderDecorator;
 import proj.zoie.api.indexing.OptimizeScheduler;
@@ -72,6 +73,23 @@ public class ZoieSystem<R extends IndexReader,V> extends AsyncDataConsumer<V> im
 	 * @param idxDir index directory, mandatory.
 	 * @param interpreter data interpreter, mandatory.
 	 * @param indexReaderDecorator index reader decorator,optional. If not specified, {@link proj.zoie.impl.indexing.DefaultIndexReaderDecorator} is used. 
+	 * @param docIdMapperFactory custom docid mapper factory
+	 * @param analyzer Default analyzer, optional. If not specified, {@link org.apache.lucene.analysis.StandardAnalyzer} is used.
+	 * @param similarity Default similarity, optional. If not specified, {@link org.apache.lucene.search.DefaultSimilarity} is used.
+	 * @param batchSize Number of indexing events to hold before flushing to disk.
+	 * @param batchDelay How long to wait before flushing to disk.
+	 * @param rtIndexing Ensure real-time.
+	 */
+	public ZoieSystem(File idxDir,ZoieIndexableInterpreter<V> interpreter,IndexReaderDecorator<R> indexReaderDecorator,DocIDMapperFactory docIdMapperFactory,Analyzer analyzer,Similarity similarity,int batchSize,long batchDelay,boolean rtIndexing)
+	{
+	  this(new DefaultDirectoryManager(idxDir), interpreter, indexReaderDecorator, docIdMapperFactory,analyzer, similarity, batchSize, batchDelay, rtIndexing);
+	}
+	
+	/**
+	 * Creates a new ZoieSystem.
+	 * @param idxDir index directory, mandatory.
+	 * @param interpreter data interpreter, mandatory.
+	 * @param indexReaderDecorator index reader decorator,optional. If not specified, {@link proj.zoie.impl.indexing.DefaultIndexReaderDecorator} is used. 
 	 * @param analyzer Default analyzer, optional. If not specified, {@link org.apache.lucene.analysis.StandardAnalyzer} is used.
 	 * @param similarity Default similarity, optional. If not specified, {@link org.apache.lucene.search.DefaultSimilarity} is used.
 	 * @param batchSize Number of indexing events to hold before flushing to disk.
@@ -82,6 +100,7 @@ public class ZoieSystem<R extends IndexReader,V> extends AsyncDataConsumer<V> im
 	{
 		this(new DefaultDirectoryManager(idxDir), interpreter, indexReaderDecorator, analyzer, similarity, batchSize, batchDelay, rtIndexing);
 	}
+	
 	/**
 	 * Creates a new ZoieSystem.
 	 * @param idxDir index directory, mandatory.
@@ -95,12 +114,54 @@ public class ZoieSystem<R extends IndexReader,V> extends AsyncDataConsumer<V> im
 	 */
 	public ZoieSystem(DirectoryManager dirMgr,ZoieIndexableInterpreter<V> interpreter,IndexReaderDecorator<R> indexReaderDecorator,Analyzer analyzer,Similarity similarity,int batchSize,long batchDelay,boolean rtIndexing)
 	{
+    	this(dirMgr, interpreter, indexReaderDecorator,new DefaultDocIDMapperFactory(), analyzer, similarity, batchSize, batchDelay, rtIndexing);
+    }
+    
+
+	/**
+	 * Creates a new ZoieSystem.
+     * @param dirMgr Directory manager, mandatory.
+     * @param interpreter data interpreter, mandatory.
+     * @param indexReaderDecorator index reader decorator,optional. If not specified, {@link proj.zoie.impl.indexing.DefaultIndexReaderDecorator} is used. 
+     * @param zoieConfig configuration object
+     */
+    public ZoieSystem(DirectoryManager dirMgr,ZoieIndexableInterpreter<V> interpreter,IndexReaderDecorator<R> indexReaderDecorator,ZoieConfig zoieConfig){
+    	this(dirMgr,interpreter,indexReaderDecorator,zoieConfig.getDocidMapperFactory(),zoieConfig.getAnalyzer(),
+    	     zoieConfig.getSimilarity(),zoieConfig.getBatchSize(),zoieConfig.getBatchDelay(),zoieConfig.isRtIndexing());
+    }
+    
+    /**
+	 * Creates a new ZoieSystem.
+     * @param idxDir index directory, mandatory.
+     * @param interpreter data interpreter, mandatory.
+     * @param indexReaderDecorator index reader decorator,optional. If not specified, {@link proj.zoie.impl.indexing.DefaultIndexReaderDecorator} is used. 
+     * @param zoieConfig configuration object
+     */
+    public ZoieSystem(File idxDir,ZoieIndexableInterpreter<V> interpreter,IndexReaderDecorator<R> indexReaderDecorator,ZoieConfig zoieConfig){
+    	this(new DefaultDirectoryManager(idxDir),interpreter,indexReaderDecorator,zoieConfig.getDocidMapperFactory(),zoieConfig.getAnalyzer(),
+    	     zoieConfig.getSimilarity(),zoieConfig.getBatchSize(),zoieConfig.getBatchDelay(),zoieConfig.isRtIndexing());
+    }
+    
+	/**
+	 * Creates a new ZoieSystem.
+     * @param dirMgr Directory manager, mandatory.
+     * @param interpreter data interpreter, mandatory.
+     * @param indexReaderDecorator index reader decorator,optional. If not specified, {@link proj.zoie.impl.indexing.DefaultIndexReaderDecorator} is used. 
+     * @param docIdMapperFactory custom docid mapper factory
+     * @param analyzer Default analyzer, optional. If not specified, {@link org.apache.lucene.analysis.StandardAnalyzer} is used.
+     * @param similarity Default similarity, optional. If not specified, {@link org.apache.lucene.search.DefaultSimilarity} is used.
+     * @param batchSize Number of indexing events to hold before flushing to disk.
+     * @param batchDelay How long to wait before flushing to disk.
+     * @param rtIndexing Ensure real-time.
+     */
+    public ZoieSystem(DirectoryManager dirMgr,ZoieIndexableInterpreter<V> interpreter,IndexReaderDecorator<R> indexReaderDecorator,DocIDMapperFactory docidMapperFactory,Analyzer analyzer,Similarity similarity,int batchSize,long batchDelay,boolean rtIndexing)
+    {
 		if (dirMgr==null) throw new IllegalArgumentException("null directory manager.");
 		_dirMgr = dirMgr;
 
 		if (interpreter==null) throw new IllegalArgumentException("null interpreter.");
 
-		_searchIdxMgr=new SearchIndexManager<R>(_dirMgr,indexReaderDecorator);
+		_searchIdxMgr=new SearchIndexManager<R>(_dirMgr,indexReaderDecorator,docidMapperFactory==null ? new DefaultDocIDMapperFactory() : docidMapperFactory);
 		_realtimeIndexing=rtIndexing;
 		_interpreter=interpreter;
 

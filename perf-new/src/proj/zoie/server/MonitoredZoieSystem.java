@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.log4j.Logger;
 import org.apache.lucene.index.IndexReader;
 
+import proj.zoie.api.ZoieIndexReader;
 import proj.zoie.impl.indexing.DefaultIndexReaderDecorator;
 import proj.zoie.impl.indexing.FileDataProvider;
 import proj.zoie.impl.indexing.FileIndexableInterpreter;
@@ -519,7 +520,6 @@ public class MonitoredZoieSystem {
 			System.exit(1);
 		}
 
-		System.out.println("Finished loading properties file");
 		log.info("Finished loading properties file for performance testing");
 		
 		String ipFile = properties.getProperty("zoie.perf.ipfile");
@@ -548,27 +548,25 @@ public class MonitoredZoieSystem {
 		}
 		
 		// get indexing stats with no query load
-//		indexingPerfNoQueryLoad(Integer.valueOf(batchSize).intValue(), Long.valueOf(batchDelay).longValue(),
-//				idxInput, idxDir, ipFile, opFile, runtime, false, true);
-//		
-//		// delete the index directory for next run
-//		try {
-//			Runtime.getRuntime().exec("rm -rf " + idxDirPath);
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			System.out.println("\nFailed to delete index for next indexing performance run");
-//		}
-//
-//		System.out.println("\nIndex deleted for next indexing performance run");
-//
-//		// get indexing stats with increasing query load
-//		indexingPerfWithQueryLoad(Integer.valueOf(batchSize).intValue(), Long.valueOf(batchDelay).longValue(),
-//				idxInput, idxDir, ipFile, opFile, runtime, queryFile, waitFile, false, true);
-//
-//		// get query performance numbers with no indexing load
-//		queryPerfNoIndexingLoad(Integer.valueOf(batchSize).intValue(), Long.valueOf(batchDelay).longValue(),
-//				idxInput, idxDir, queryFile, waitFile, queryPerfFile, runtime, false, false);
+		indexingPerfNoQueryLoad(Integer.valueOf(batchSize).intValue(), Long.valueOf(batchDelay).longValue(),
+				idxInput, idxDir, ipFile, opFile, runtime, false, true);
+		
+		// delete the index directory for next run
+		try {
+			Runtime.getRuntime().exec("rm -rf " + idxDirPath);
+		} catch (IOException e) {
+			System.out.println("\nFailed to delete index for next indexing performance run");
+		}
+
+		System.out.println("\nIndex deleted for next indexing performance run");
+
+		// get indexing stats with increasing query load
+		indexingPerfWithQueryLoad(Integer.valueOf(batchSize).intValue(), Long.valueOf(batchDelay).longValue(),
+				idxInput, idxDir, ipFile, opFile, runtime, queryFile, waitFile, false, true);
+
+		// get query performance numbers with no indexing load
+		queryPerfNoIndexingLoad(Integer.valueOf(batchSize).intValue(), Long.valueOf(batchDelay).longValue(),
+				idxInput, idxDir, queryFile, waitFile, queryPerfFile, runtime, false, false);
 		
 		// get query performance numbers with increasing indexing load
 		queryPerfWithIndexingLoad(throttleFile, Integer.valueOf(batchSize).intValue(), Long.valueOf(batchDelay).longValue(),

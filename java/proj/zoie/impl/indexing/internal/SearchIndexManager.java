@@ -76,6 +76,22 @@ public class SearchIndexManager<R extends IndexReader>{
 		init();
 	}
 
+	 public SearchIndexManager(DirectoryManager dirMgr,IndexReaderDecorator<R> indexReaderDecorator,DocIDMapperFactory docIDMapperFactory)
+	 {
+		 _dirMgr = dirMgr;
+		 _docIDMapperFactory = docIDMapperFactory;
+
+		 if (indexReaderDecorator!=null)
+		 {
+			 _indexReaderDecorator=indexReaderDecorator;
+		 }
+		 else
+		 {
+			 throw new IllegalArgumentException("indexReaderDecorator cannot be null");
+		 }
+		 init();
+	 }
+	  
 	public void setDocIDMapperFactory(DocIDMapperFactory docIDMapperFactory){
 		if (docIDMapperFactory != null){
 			_docIDMapperFactory = docIDMapperFactory;
@@ -85,11 +101,6 @@ public class SearchIndexManager<R extends IndexReader>{
 	public DocIDMapperFactory getDocIDMapperFactory(){
 		return _docIDMapperFactory;
 	}
-
-	//	  public File getDiskIndexLocation()
-	//	  {
-	//	    return _dirMgr;
-	//	  }
 
 	public int getDiskSegmentCount() throws IOException{
 		return _diskIndex.getSegmentCount();
@@ -529,11 +540,11 @@ public class SearchIndexManager<R extends IndexReader>{
 		 Mem(RAMSearchIndex<R> a, RAMSearchIndex<R> b, RAMSearchIndex<R> w, 
 				 RAMSearchIndex<R> r, ZoieIndexReader<R> d)
 				 {
-			 _memIndexA = a;
-			 _memIndexB = b;
-			 _currentWritable = w;
-			 _currentReadOnly = r;
-			 _diskIndexReader = d;
+				 _memIndexA = a;
+				 _memIndexB = b;
+				 _currentWritable = w;
+				 _currentReadOnly = r;
+				 _diskIndexReader = d;
 				 }
 
 		 protected RAMSearchIndex<R> get_memIndexA()

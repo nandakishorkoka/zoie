@@ -111,16 +111,11 @@ public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProvi
 
 	public void stop()
 	{
-		System.out.println("Trying to stop the file data provider...");
 		if (_thread!=null && _thread.isAlive())
 		{
-			System.out.println("Trying to terminate data provider thread ...");
 			_thread.terminate();
-			System.out.println("Terminated data provider thread ...");
 			try {
-				System.out.println("Waiting for data provider thread to finish ...");
 				_thread.join();
-				System.out.println("Finished waiting for data provider thread ..");
 			} catch (InterruptedException e) {
 				log.warn("stopping interrupted");
 			}
@@ -190,9 +185,7 @@ public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProvi
 			synchronized(this)
 			{
 				_stop = true;
-				System.out.println("Trying to notify other threads of change to stop value");
 				this.notifyAll();
-				System.out.println("Notified other threads of change to stop value");
 			}
 		}
 
@@ -331,7 +324,6 @@ public abstract class StreamDataProvider<V> implements DataProvider<V>,DataProvi
 		private void setMaxEventsPerMinute(long maxEventsPerMinute)
 		{
 			_throttle = maxEventsPerMinute;
-			System.out.println("StreamDataProvider: setMaxEventsPerMinute() --> Changing _throttle value to " + _throttle);
 		}
 	}
 }

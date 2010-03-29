@@ -95,11 +95,11 @@ public class ZoieSystemAdmin implements ZoieSystemAdminMBean {
 	}
 
 	public void setBatchSize(int batchSize) {
-		_internalMBean.getMinUID();
+		_internalMBean.setBatchSize(batchSize);
 	}
 
 	public void setMaxBatchSize(int maxBatchSize) {
-		_internalMBean.getMaxUID();
+		_internalMBean.setMaxBatchSize(maxBatchSize);
 	}
 
 	public String getIndexDir() {

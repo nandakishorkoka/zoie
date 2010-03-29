@@ -44,7 +44,7 @@ public class RAMSearchIndex<R extends IndexReader> extends BaseSearchIndex<R> {
 	  
 	  public static final Logger log = Logger.getLogger(RAMSearchIndex.class);
 
-	  RAMSearchIndex(long version, IndexReaderDecorator<R> decorator,SearchIndexManager<R> idxMgr){
+	  public RAMSearchIndex(long version, IndexReaderDecorator<R> decorator,SearchIndexManager<R> idxMgr){
 		super(idxMgr);
 	    _directory = new RAMDirectory();
 	    _version = version;
@@ -177,8 +177,11 @@ public class RAMSearchIndex<R extends IndexReader> extends BaseSearchIndex<R> {
 	      else
 	      {
 	        reader = (ZoieIndexReader<R>)_currentReader.reopen(true);
-	        DocIDMapper mapper = _idxMgr._docIDMapperFactory.getDocIDMapper((ZoieMultiReader<R>)reader);
-	        reader.setDocIDMapper(mapper);
+	        if (reader != _currentReader)
+	        {
+	          DocIDMapper mapper = _idxMgr._docIDMapperFactory.getDocIDMapper((ZoieMultiReader<R>)reader);
+	          reader.setDocIDMapper(mapper);
+	        }
 	      }
 	      
 	      _currentReader = reader;
